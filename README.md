@@ -1,2 +1,55 @@
-# zha-advanced-toolkit
-Home Assistant companion integration for friendly ZHA advanced device settings
+# ZHA Advanced Toolkit
+
+Home Assistant custom integration that complements ZHA by exposing friendly entities for advanced Zigbee device settings.
+
+## Current support
+
+- Inovelli VZM32-SN Blue Series mmWave Presence Dimmer/Switch
+- Requires ZHA and the relevant ZHA quirk to expose manufacturer clusters
+
+## Install with HACS
+
+1. In Home Assistant, open **HACS**.
+2. Go to **Integrations**.
+3. Open the three-dot menu and choose **Custom repositories**.
+4. Add this repository URL:
+
+   `https://github.com/Digitalbrainstem/zha-advanced-toolkit`
+
+5. Set the category to **Integration**.
+6. Install **ZHA Advanced Toolkit** from HACS.
+7. Restart Home Assistant.
+8. Go to **Settings** -> **Devices & services** -> **Add integration**.
+9. Add **ZHA Advanced Toolkit**.
+
+HACS will notify you when updates are available.
+
+## Manual install
+
+1. Copy `custom_components/zha_advanced_toolkit` into your Home Assistant `custom_components` directory.
+2. Restart Home Assistant.
+3. Go to **Settings** -> **Devices & services** -> **Add integration**.
+4. Add **ZHA Advanced Toolkit**.
+
+The integration discovers supported ZHA devices and adds native Home Assistant entities to the existing ZHA device.
+
+## Exposed settings
+
+The first profile focuses on the VZM32-SN wiring/setup settings:
+
+- Switch mode
+- Wiring type
+- Smart bulb mode
+- Aux switch unique scenes
+- Local and remote protection
+- Invert switch
+- Min/max dim levels
+- Auto-off timer
+- Basic LED color/intensity settings
+- Selected mmWave settings and commands
+
+Unknown or firmware-specific select values are shown as **Custom / Unknown** so newer firmware is not hidden from the user.
+
+## Notes
+
+This integration uses ZHA as the Zigbee backend. It does not replace ZHA, pair devices, or manage the Zigbee network.

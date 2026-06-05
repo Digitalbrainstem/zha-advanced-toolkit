@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ZHA Advanced Toolkit",
+        "description": "Create friendly Home Assistant entities for supported advanced ZHA device settings."
+      }
+    },
+    "abort": {
+      "already_configured": "ZHA Advanced Toolkit is already configured."
+    }
+  }
+}

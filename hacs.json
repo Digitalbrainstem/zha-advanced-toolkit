@@ -1,0 +1,6 @@
+{
+  "name": "ZHA Advanced Toolkit",
+  "render_readme": true,
+  "domains": ["zha_advanced_toolkit"],
+  "homeassistant": "2026.5.0"
+}
