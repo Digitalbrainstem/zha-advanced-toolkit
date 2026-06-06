@@ -1,6 +1,6 @@
 # ZHA Advanced Toolkit
 
-Home Assistant custom integration that complements ZHA by exposing friendly entities for advanced Zigbee device settings.
+Home Assistant custom integration that complements ZHA with a friendly advanced configuration panel and native entities for common Zigbee device settings.
 
 ## Current support
 
@@ -14,24 +14,25 @@ Home Assistant custom integration that complements ZHA by exposing friendly enti
 3. Go to **Settings** -> **Devices & services** -> **Add integration**.
 4. Add **ZHA Advanced Toolkit**.
 
-The integration discovers supported ZHA devices and adds native Home Assistant entities to the existing ZHA device.
+The integration discovers supported ZHA devices and adds a **ZHA Toolkit** panel to the Home Assistant sidebar.
 
-Only one **ZHA Advanced Toolkit** integration entry is needed. The Inovelli/Zigbee devices are discovered from ZHA and exposed as entities under their existing ZHA devices; you do not add each switch with **Add entry**.
+Only one **ZHA Advanced Toolkit** integration entry is needed. The Inovelli/Zigbee devices are discovered from ZHA; you do not add each switch with **Add entry**.
+
+## ZHA Toolkit panel
+
+Open **ZHA Toolkit** from the Home Assistant sidebar to select a supported device, view grouped advanced configuration settings, read current Zigbee values, write changes, and run supported device commands.
+
+The panel also includes **Raw cluster access** for attributes that do not have friendly controls yet. This lets you load exposed ZHA clusters and read/write endpoint, cluster, and attribute IDs directly from the same UI.
+
+Home Assistant does not expose a supported API for custom integrations to add a new tab inside ZHA's built-in **Manage Zigbee Device** dialog, so the toolkit provides its own admin-only panel instead of patching ZHA's frontend.
 
 ## Configuration entities
 
-The toolkit exposes device settings as Home Assistant **configuration entities**, so they appear in the device page's **Configuration** section instead of on normal dashboards.
-
-Common setup controls are enabled by default. Less common or advanced controls are added as disabled entities so they do not clutter the device page. To show them:
-
-1. Open the device in Home Assistant.
-2. Open the device's **Entities** list.
-3. Enable the disabled `ZHA Advanced Toolkit` entities you want to configure.
-4. Disable them again after making one-time changes if you want to keep the device page clean.
+Common setup controls are still exposed as Home Assistant **configuration entities** on the existing ZHA device page for quick access. The full advanced configuration surface is in the **ZHA Toolkit** panel so the device page does not become overloaded with rarely changed settings.
 
 ## Exposed settings
 
-The first profile focuses on the VZM32-SN wiring/setup settings:
+The first profile exposes VZM32-SN settings including:
 
 - Switch mode
 - Wiring type

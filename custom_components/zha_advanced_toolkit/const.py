@@ -16,3 +16,8 @@ CATEGORY_PROTECTION = "Protection"
 CATEGORY_REPORTING = "Reporting"
 
 SERVICE_DIAGNOSE = "diagnose"
+
+PANEL_URL = "zha-advanced-toolkit"
+PANEL_STATIC_URL = "/zha_advanced_toolkit_static"
+PANEL_JS = "zha-advanced-toolkit-panel.js"
+PANEL_STATIC_REGISTERED = f"{DOMAIN}_panel_static_registered"

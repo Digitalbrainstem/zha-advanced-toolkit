@@ -12,7 +12,9 @@ from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import DOMAIN, SERVICE_DIAGNOSE
 from .models import ToolkitData
+from .panel import async_register_toolkit_panel, async_remove_toolkit_panel
 from .profiles import get_matching_profile
+from .websocket_api import async_register_websocket_api
 from .zha import (
     ZHAAccessError,
     get_device_firmware,
@@ -91,6 +93,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         persistent_notification.async_dismiss(hass, NO_DEVICES_NOTIFICATION_ID)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    await async_register_toolkit_panel(hass)
+    async_register_websocket_api(hass)
 
     async def diagnose_service(_) -> None:
         """Create a notification with current ZHA discovery diagnostics."""
@@ -129,5 +133,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
         if not hass.data.get(DOMAIN):
+            async_remove_toolkit_panel(hass)
             hass.services.async_remove(DOMAIN, SERVICE_DIAGNOSE)
     return unload_ok
