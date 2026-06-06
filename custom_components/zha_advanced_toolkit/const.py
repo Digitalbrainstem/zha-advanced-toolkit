@@ -2,7 +2,7 @@
 
 DOMAIN = "zha_advanced_toolkit"
 ZHA_DOMAIN = "zha"
-VERSION = "0.3.2"
+VERSION = "0.3.3"
 
 CLUSTER_TYPE_IN = "in"
 COMMAND_TYPE_SERVER = "server"
@@ -19,6 +19,6 @@ CATEGORY_REPORTING = "Reporting"
 SERVICE_DIAGNOSE = "diagnose"
 
 PANEL_URL = "zha-advanced-toolkit"
-PANEL_STATIC_URL = "/zha_advanced_toolkit_static"
+PANEL_STATIC_URL = "/api/zha_advanced_toolkit/frontend"
 PANEL_JS = "zha-advanced-toolkit-panel.js"
 PANEL_STATIC_REGISTERED = f"{DOMAIN}_panel_static_registered"

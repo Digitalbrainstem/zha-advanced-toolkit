@@ -324,3 +324,4 @@ class ZhaAdvancedToolkitPanel extends HTMLElement {
 if (!customElements.get("zha-advanced-toolkit-panel")) {
   customElements.define("zha-advanced-toolkit-panel", ZhaAdvancedToolkitPanel);
 }
+console.info("[zha-advanced-toolkit] panel module loaded");

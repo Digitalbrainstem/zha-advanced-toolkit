@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
+
+from aiohttp import web
 
 from homeassistant.components.frontend import (
     async_panel_exists,
     async_register_built_in_panel,
     async_remove_panel,
 )
+from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
-
-try:
-    from homeassistant.components.http import StaticPathConfig
-except ImportError:
-    StaticPathConfig = None
 
 from .const import (
     DOMAIN,
@@ -25,30 +24,37 @@ from .const import (
     VERSION,
 )
 
+_LOGGER = logging.getLogger(__name__)
 
-async def _async_register_static_path(hass: HomeAssistant, panel_dir: Path) -> None:
-    """Register the panel static path across HA versions."""
-    if StaticPathConfig is not None and hasattr(hass.http, "async_register_static_paths"):
-        await hass.http.async_register_static_paths(
-            [
-                StaticPathConfig(
-                    PANEL_STATIC_URL,
-                    str(panel_dir),
-                    cache_headers=False,
-                )
-            ]
+
+class ZHAToolkitFrontendView(HomeAssistantView):
+    """Serve the toolkit frontend module."""
+
+    requires_auth = False
+    url = f"{PANEL_STATIC_URL}/{{filename}}"
+    name = f"api:{DOMAIN}:frontend"
+
+    def __init__(self, panel_dir: Path) -> None:
+        """Initialize the frontend view."""
+        self._panel_dir = panel_dir
+
+    async def get(self, request: web.Request, filename: str) -> web.StreamResponse:
+        """Return the requested frontend asset."""
+        if filename != PANEL_JS:
+            return web.Response(status=404)
+
+        js_file = self._panel_dir / PANEL_JS
+        if not js_file.is_file():
+            _LOGGER.error("Panel JS is missing at %s", js_file)
+            return web.Response(status=404)
+
+        return web.FileResponse(
+            js_file,
+            headers={
+                "Cache-Control": "no-store",
+                "Content-Type": "text/javascript; charset=utf-8",
+            },
         )
-        return
-
-    if hasattr(hass.http, "async_register_static_path"):
-        await hass.http.async_register_static_path(
-            PANEL_STATIC_URL,
-            str(panel_dir),
-            False,
-        )
-        return
-
-    hass.http.register_static_path(PANEL_STATIC_URL, str(panel_dir), False)
 
 
 async def async_register_toolkit_panel(hass: HomeAssistant) -> None:
@@ -58,7 +64,16 @@ async def async_register_toolkit_panel(hass: HomeAssistant) -> None:
 
     if not hass.data.get(PANEL_STATIC_REGISTERED):
         panel_dir = Path(__file__).parent / "frontend"
-        await _async_register_static_path(hass, panel_dir)
+        js_file = panel_dir / PANEL_JS
+        _LOGGER.info(
+            "Registering ZHA Advanced Toolkit frontend at %s/%s?v=%s "
+            "(exists=%s)",
+            PANEL_STATIC_URL,
+            PANEL_JS,
+            VERSION,
+            js_file.is_file(),
+        )
+        hass.http.register_view(ZHAToolkitFrontendView(panel_dir))
         hass.data[PANEL_STATIC_REGISTERED] = True
     async_register_built_in_panel(
         hass,
