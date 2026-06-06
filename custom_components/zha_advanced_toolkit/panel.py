@@ -4,10 +4,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from homeassistant.components.frontend import async_panel_exists, async_remove_panel
-from homeassistant.components.http import StaticPathConfig
-from homeassistant.components.panel_custom import async_register_panel
+from homeassistant.components.frontend import (
+    async_panel_exists,
+    async_register_built_in_panel,
+    async_remove_panel,
+)
 from homeassistant.core import HomeAssistant
+
+try:
+    from homeassistant.components.http import StaticPathConfig
+except ImportError:
+    StaticPathConfig = None
 
 from .const import (
     DOMAIN,
@@ -15,7 +22,33 @@ from .const import (
     PANEL_STATIC_REGISTERED,
     PANEL_STATIC_URL,
     PANEL_URL,
+    VERSION,
 )
+
+
+async def _async_register_static_path(hass: HomeAssistant, panel_dir: Path) -> None:
+    """Register the panel static path across HA versions."""
+    if StaticPathConfig is not None and hasattr(hass.http, "async_register_static_paths"):
+        await hass.http.async_register_static_paths(
+            [
+                StaticPathConfig(
+                    PANEL_STATIC_URL,
+                    str(panel_dir),
+                    cache_headers=False,
+                )
+            ]
+        )
+        return
+
+    if hasattr(hass.http, "async_register_static_path"):
+        await hass.http.async_register_static_path(
+            PANEL_STATIC_URL,
+            str(panel_dir),
+            False,
+        )
+        return
+
+    hass.http.register_static_path(PANEL_STATIC_URL, str(panel_dir), False)
 
 
 async def async_register_toolkit_panel(hass: HomeAssistant) -> None:
@@ -25,25 +58,23 @@ async def async_register_toolkit_panel(hass: HomeAssistant) -> None:
 
     if not hass.data.get(PANEL_STATIC_REGISTERED):
         panel_dir = Path(__file__).parent / "frontend"
-        await hass.http.async_register_static_paths(
-            [
-                StaticPathConfig(
-                    PANEL_STATIC_URL,
-                    str(panel_dir),
-                    cache_headers=True,
-                )
-            ]
-        )
+        await _async_register_static_path(hass, panel_dir)
         hass.data[PANEL_STATIC_REGISTERED] = True
-    await async_register_panel(
+    async_register_built_in_panel(
         hass,
+        component_name="custom",
         frontend_url_path=PANEL_URL,
-        webcomponent_name="zha-advanced-toolkit-panel",
-        sidebar_title="ZHA Toolkit",
-        sidebar_icon="mdi:zigbee",
-        module_url=f"{PANEL_STATIC_URL}/{PANEL_JS}",
+        config={
+            "_panel_custom": {
+                "name": "zha-advanced-toolkit-panel",
+                "embed_iframe": False,
+                "trust_external": False,
+                "module_url": f"{PANEL_STATIC_URL}/{PANEL_JS}?v={VERSION}",
+            }
+        },
         require_admin=True,
         config_panel_domain=DOMAIN,
+        show_in_sidebar=False,
     )
 
 

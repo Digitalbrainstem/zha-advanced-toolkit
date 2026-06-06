@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import DOMAIN, SERVICE_DIAGNOSE
+from .device_link import async_attach_device_links, async_remove_device_links
 from .models import ToolkitData
 from .panel import async_register_toolkit_panel, async_remove_toolkit_panel
 from .profiles import get_matching_profile
@@ -94,6 +95,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await async_register_toolkit_panel(hass)
+    async_attach_device_links(hass, toolkit_data.devices)
     async_register_websocket_api(hass)
 
     async def diagnose_service(_) -> None:
@@ -131,6 +133,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a ZHA Advanced Toolkit config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
+        data: ToolkitData | None = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+        if data is not None:
+            async_remove_device_links(hass, data.devices)
         hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
         if not hass.data.get(DOMAIN):
             async_remove_toolkit_panel(hass)

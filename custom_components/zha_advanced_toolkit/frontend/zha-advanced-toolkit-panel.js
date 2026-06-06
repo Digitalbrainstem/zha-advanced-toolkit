@@ -50,6 +50,7 @@ class ZhaAdvancedToolkitPanel extends HTMLElement {
     this.setStatus("Loading devices...");
     try {
       this._devices = await this._hass.callWS({ type: "zha_advanced_toolkit/devices" });
+      const selectedIeee = new URLSearchParams(window.location.search).get("ieee");
       const selector = this.querySelector("#device");
       selector.innerHTML = "";
       for (const device of this._devices) {
@@ -57,6 +58,9 @@ class ZhaAdvancedToolkitPanel extends HTMLElement {
         option.value = device.ieee;
         option.textContent = `${device.name || device.model || device.ieee} (${device.ieee})`;
         selector.appendChild(option);
+      }
+      if (selectedIeee && this._devices.some((device) => device.ieee === selectedIeee)) {
+        selector.value = selectedIeee;
       }
       this.renderDevice();
     } catch (err) {
