@@ -72,6 +72,7 @@ class EntityDescriptionBase:
     manufacturer: int | None = None
     min_firmware: str | None = None
     max_firmware: str | None = None
+    enabled_by_default: bool = True
 
     @property
     def unique_suffix(self) -> str:

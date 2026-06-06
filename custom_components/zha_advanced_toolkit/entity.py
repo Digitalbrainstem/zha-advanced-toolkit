@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from homeassistant.const import EntityCategory
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import Entity
@@ -21,6 +22,8 @@ class ZHAAdvancedEntity(Entity):
         self.toolkit_device = toolkit_device
         self.entity_description = description
         self._attr_zigbee_available = True
+        self._attr_entity_category = EntityCategory.CONFIG
+        self._attr_entity_registry_enabled_default = description.enabled_by_default
         self._attr_unique_id = (
             f"{toolkit_device.ieee}-zat-{description.unique_suffix}"
         )

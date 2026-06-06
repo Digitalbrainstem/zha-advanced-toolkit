@@ -18,6 +18,17 @@ The integration discovers supported ZHA devices and adds native Home Assistant e
 
 Only one **ZHA Advanced Toolkit** integration entry is needed. The Inovelli/Zigbee devices are discovered from ZHA and exposed as entities under their existing ZHA devices; you do not add each switch with **Add entry**.
 
+## Configuration entities
+
+The toolkit exposes device settings as Home Assistant **configuration entities**, so they appear in the device page's **Configuration** section instead of on normal dashboards.
+
+Common setup controls are enabled by default. Less common or advanced controls are added as disabled entities so they do not clutter the device page. To show them:
+
+1. Open the device in Home Assistant.
+2. Open the device's **Entities** list.
+3. Enable the disabled `ZHA Advanced Toolkit` entities you want to configure.
+4. Disable them again after making one-time changes if you want to keep the device page clean.
+
 ## Exposed settings
 
 The first profile focuses on the VZM32-SN wiring/setup settings:
