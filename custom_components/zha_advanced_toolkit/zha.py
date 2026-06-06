@@ -101,11 +101,17 @@ def _get_registry_zha_devices(registry: dr.DeviceRegistry) -> list[ZHADeviceRef]
 
 def _entry_zha_ieee(entry: Any) -> str | None:
     """Extract a ZHA IEEE string from a device registry entry."""
-    for domain, identifier in getattr(entry, "identifiers", set()):
+    for identifier_tuple in getattr(entry, "identifiers", set()):
+        if len(identifier_tuple) < 2:
+            continue
+        domain, identifier = identifier_tuple[:2]
         if domain == "zha":
             return str(identifier)
 
-    for connection_type, identifier in getattr(entry, "connections", set()):
+    for connection_tuple in getattr(entry, "connections", set()):
+        if len(connection_tuple) < 2:
+            continue
+        connection_type, identifier = connection_tuple[:2]
         if connection_type == dr.CONNECTION_ZIGBEE:
             return str(identifier)
     return None
