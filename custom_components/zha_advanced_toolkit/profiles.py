@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from .const import (
     CATEGORY_DIMMING,
     CATEGORY_LED,
@@ -261,7 +263,10 @@ SWITCH_SETTINGS = (
         category=CATEGORY_SWITCH,
         attribute_id=0x0102,
         attribute_name="output_mode",
-        options=(option(0, "Dimmer"), option(1, "On / Off")),
+        options=(
+            option(0, "Dimmer", "Allows dimming and level control."),
+            option(1, "On / Off", "Acts like a relay switch with no dimming output."),
+        ),
         enabled_by_default=True,
     ),
     inovelli_select(
@@ -271,10 +276,10 @@ SWITCH_SETTINGS = (
         attribute_id=0x0016,
         attribute_name="switch_type",
         options=(
-            option(0, "Single pole"),
-            option(1, "Multi-way mode 1 / aux or firmware default"),
-            option(2, "Multi-way mode 2 / dumb or alternate aux"),
-            option(3, "Multi-way full sine / firmware-specific"),
+            option(0, "Single pole", "The switch directly controls one load with no traveler or aux switch."),
+            option(1, "Multi-way mode 1 / aux or firmware default", "Use for supported multi-way wiring with an aux/add-on switch on firmwares that expose mode 1."),
+            option(2, "Multi-way mode 2 / dumb or alternate aux", "Use for supported multi-way wiring with a dumb switch or alternate aux wiring on firmwares that expose mode 2."),
+            option(3, "Multi-way full sine / firmware-specific", "Firmware-specific multi-way mode. Use only when recommended for your wiring."),
         ),
         enabled_by_default=True,
     ),
@@ -336,7 +341,10 @@ SWITCH_SETTINGS = (
         category=CATEGORY_SWITCH,
         attribute_id=0x001A,
         attribute_name="leading_or_trailing_edge",
-        options=(option(0, "Leading edge"), option(1, "Trailing edge")),
+        options=(
+            option(0, "Leading edge", "Forward phase dimming, often used for magnetic/MLV loads."),
+            option(1, "Trailing edge", "Reverse phase dimming, often smoother for many LED loads."),
+        ),
     ),
     inovelli_number(
         key="button_delay",
@@ -573,13 +581,13 @@ MMWAVE_SETTINGS = (
         attribute_id=0x006E,
         attribute_name="light_on_presence_behavior",
         options=(
-            option(0, "Disabled"),
-            option(1, "Auto on/off when occupied"),
-            option(2, "Auto off when vacant"),
-            option(3, "Auto on when occupied"),
-            option(4, "Auto on/off when vacant"),
-            option(5, "Auto on when vacant"),
-            option(6, "Auto off when occupied"),
+            option(0, "Disabled", "Presence does not automatically control the load."),
+            option(1, "Auto on/off when occupied", "Turn on when occupied and turn off after vacancy timeout."),
+            option(2, "Auto off when vacant", "Only turn off automatically when the room becomes vacant."),
+            option(3, "Auto on when occupied", "Only turn on automatically when presence is detected."),
+            option(4, "Auto on/off when vacant", "Firmware-specific behavior for vacancy-triggered automation."),
+            option(5, "Auto on when vacant", "Firmware-specific behavior. Use only if documented for your firmware."),
+            option(6, "Auto off when occupied", "Firmware-specific behavior. Use only if documented for your firmware."),
         ),
         enabled_by_default=True,
     ),
@@ -590,12 +598,12 @@ MMWAVE_SETTINGS = (
         attribute_id=0x0075,
         attribute_name="mmwave_room_size_preset",
         options=(
-            option(0, "Custom"),
-            option(1, "X-Small"),
-            option(2, "Small"),
-            option(3, "Medium"),
-            option(4, "Large"),
-            option(5, "X-Large"),
+            option(0, "Custom", "Use the manual width/depth/height boundary values."),
+            option(1, "X-Small", "Small enclosed space or very close detection area."),
+            option(2, "Small", "Small room or tight detection area."),
+            option(3, "Medium", "Typical room-sized detection area."),
+            option(4, "Large", "Larger room-sized detection area."),
+            option(5, "X-Large", "Largest preset detection area."),
         ),
         enabled_by_default=True,
     ),
@@ -722,7 +730,11 @@ FAN_BINDING_SETTINGS = (
         category=CATEGORY_SWITCH,
         attribute_id=0x0078,
         attribute_name="fan_single_tap_behavior",
-        options=(option(0, "Disabled"), option(1, "Cycle"), option(2, "Favorite")),
+        options=(
+            option(0, "Disabled", "Single tap does not change fan speed behavior."),
+            option(1, "Cycle", "Single tap cycles through fan speed levels."),
+            option(2, "Favorite", "Single tap jumps to the configured favorite fan level."),
+        ),
     ),
     inovelli_switch(
         key="fan_timer_display",
@@ -786,18 +798,131 @@ FAN_BINDING_SETTINGS = (
 )
 
 
+SETTING_DESCRIPTIONS = {
+    "switch_mode": "Choose whether the device controls the load as a dimmer or as a simple on/off relay.",
+    "switch_type": "Match this to the wiring at the wall. Incorrect wiring mode can make multi-way or aux switches behave incorrectly.",
+    "smart_bulb_mode": "Keeps power available to smart bulbs while still sending switch events to Home Assistant.",
+    "invert_switch": "Reverses the local paddle direction when the physical orientation or wiring makes up/down feel backwards.",
+    "auto_off_timer": "Automatically turns the load off after this many seconds. Set to 0 to disable.",
+    "quick_start_time": "Briefly boosts output at turn-on to help some bulbs start reliably.",
+    "quick_start_level": "Brightness level used during the quick-start boost.",
+    "increased_non_neutral_output": "Raises non-neutral output behavior for loads that need more power to operate reliably.",
+    "leading_or_trailing_edge": "Selects the dimming phase style. Trailing edge is often smoother for LEDs; leading edge may be needed for some transformers.",
+    "button_delay": "Delay used to distinguish single taps from multi-taps. Lower is faster; higher makes multi-taps easier.",
+    "double_tap_up_enabled": "Enables a dedicated level when the up paddle is double-tapped.",
+    "double_tap_down_enabled": "Enables a dedicated level when the down paddle is double-tapped.",
+    "double_tap_up_level": "Target level used when double-tapping up.",
+    "double_tap_down_level": "Target level used when double-tapping down.",
+    "aux_switch_unique_scenes": "Makes aux/add-on switch actions generate separate scene events from the main paddle.",
+    "dimming_speed_up_remote": "How quickly brightness increases from Zigbee/Home Assistant commands.",
+    "dimming_speed_up_local": "How quickly brightness increases from the physical paddle.",
+    "dimming_speed_down_remote": "How quickly brightness decreases from Zigbee/Home Assistant commands.",
+    "dimming_speed_down_local": "How quickly brightness decreases from the physical paddle.",
+    "ramp_rate_off_to_on_remote": "Transition time from off to on for Zigbee/Home Assistant commands.",
+    "ramp_rate_off_to_on_local": "Transition time from off to on from the physical paddle.",
+    "ramp_rate_on_to_off_remote": "Transition time from on to off for Zigbee/Home Assistant commands.",
+    "ramp_rate_on_to_off_local": "Transition time from on to off from the physical paddle.",
+    "minimum_level": "Lowest output level the dimmer will use. Raise this if bulbs flicker or turn off at low levels.",
+    "maximum_level": "Highest output level the dimmer will use. Lower this if bulbs flicker or overdrive at full output.",
+    "default_level_local": "Default brightness used from the physical paddle. 0 typically means use the previous level.",
+    "default_level_remote": "Default brightness used from Zigbee/Home Assistant commands. 0 typically means use the previous level.",
+    "level_after_power_restored": "Brightness/load state restored after power is lost and returns.",
+    "load_level_indicator_timeout": "How long the LED bar shows the current load level after a change.",
+    "led_color_when_on": "LED bar color while the load is on.",
+    "led_color_when_off": "LED bar color while the load is off.",
+    "led_intensity_when_on": "LED bar brightness while the load is on.",
+    "led_intensity_when_off": "LED bar brightness while the load is off.",
+    "led_scaling_mode": "Changes how the LED bar represents load level.",
+    "one_led_mode": "Uses a single LED indicator instead of the full bar when supported.",
+    "firmware_progress_led": "Allows firmware update progress to display on the LED bar.",
+    "disable_clear_notifications_double_tap": "Prevents clearing LED notifications by double-tapping the config button.",
+    "local_protection": "Disables local paddle control while still allowing remote control.",
+    "remote_protection": "Disables remote/Zigbee control while preserving local control.",
+    "active_power_reports": "How much active power must change before the device sends a report.",
+    "periodic_power_and_energy_reports": "How often the device sends periodic power/energy reports.",
+    "active_energy_reports": "How much energy must change before the device sends a report.",
+    "light_on_presence_behavior": "Controls how the mmWave presence sensor automatically affects the load.",
+    "mmwave_room_size_preset": "Preset detection boundary size for the mmWave sensor.",
+    "mmwave_height_minimum_floor": "Lower vertical boundary for mmWave detection.",
+    "mmwave_height_maximum_ceiling": "Upper vertical boundary for mmWave detection.",
+    "mmwave_width_minimum_left": "Left boundary for mmWave detection.",
+    "mmwave_width_maximum_right": "Right boundary for mmWave detection.",
+    "mmwave_depth_minimum_near": "Nearest depth boundary for mmWave detection.",
+    "mmwave_depth_maximum_far": "Farthest depth boundary for mmWave detection.",
+    "mmwave_target_info_report": "Enables extra target information reporting from the mmWave module.",
+    "mmwave_stay_life": "How long occupancy remains active after motion/presence stops.",
+    "mmwave_sensitivity": "How sensitive the mmWave sensor is to presence.",
+    "mmwave_trigger_speed": "How quickly the mmWave sensor triggers presence.",
+    "mmwave_detection_timeout": "How long detection is held before clearing.",
+    "fan_single_tap_behavior": "Controls how a fan switch handles single-tap fan commands.",
+    "fan_timer_display": "Shows fan timer/countdown information on the LED bar when supported.",
+    "binding_off_to_on_sync_level": "Syncs bound devices to the default level when turning on.",
+    "fan_module_binding_control": "Controls fan module binding behavior.",
+    "low_for_bound_control": "Level sent for low speed to a bound fan module.",
+    "medium_for_bound_control": "Level sent for medium speed to a bound fan module.",
+    "high_for_bound_control": "Level sent for high speed to a bound fan module.",
+    "led_color_for_bound_control": "LED color used for bound fan control feedback.",
+}
+
+
+def _description_for(setting) -> str | None:
+    """Return a description for a setting."""
+    if setting.key in SETTING_DESCRIPTIONS:
+        return SETTING_DESCRIPTIONS[setting.key]
+    if "color" in setting.key:
+        return "LED color. The toolkit shows a color picker and converts it to the raw Inovelli hue value."
+    if "intensity" in setting.key:
+        return "LED brightness percentage for this indicator."
+    return None
+
+
+def _presentation_for(setting) -> str | None:
+    """Return the preferred UI presentation for a setting."""
+    if "color" in setting.key:
+        return "color_hue"
+    return None
+
+
+def with_metadata(settings):
+    """Attach descriptions and presentation hints to profile settings."""
+    return tuple(
+        replace(
+            setting,
+            description=_description_for(setting),
+            presentation=_presentation_for(setting),
+        )
+        for setting in settings
+    )
+
+
+COMMON_SWITCH_DIMMER_SETTINGS = with_metadata(
+    SWITCH_SETTINGS
+    + DIMMING_SETTINGS
+    + LED_SETTINGS
+    + PROTECTION_SETTINGS
+    + REPORTING_SETTINGS
+)
+
+COMMON_SWITCH_SETTINGS = with_metadata(
+    SWITCH_SETTINGS + LED_SETTINGS + PROTECTION_SETTINGS + REPORTING_SETTINGS
+)
+
+COMMON_FAN_SWITCH_SETTINGS = with_metadata(
+    SWITCH_SETTINGS
+    + LED_SETTINGS
+    + PROTECTION_SETTINGS
+    + REPORTING_SETTINGS
+    + FAN_BINDING_SETTINGS
+)
+
+
 VZM32_SN = Profile(
     name="Inovelli VZM32-SN",
     manufacturer="Inovelli",
     model="VZM32-SN",
     settings=(
-        SWITCH_SETTINGS
-        + DIMMING_SETTINGS
-        + LED_SETTINGS
-        + PROTECTION_SETTINGS
-        + REPORTING_SETTINGS
-        + MMWAVE_SETTINGS
-        + FAN_BINDING_SETTINGS
+        COMMON_SWITCH_DIMMER_SETTINGS
+        + with_metadata(MMWAVE_SETTINGS + FAN_BINDING_SETTINGS)
     ),
     commands=(
         inovelli_command(
@@ -859,7 +984,31 @@ VZM32_SN = Profile(
     ),
 )
 
-PROFILES = (VZM32_SN,)
+VZM31_SN = Profile(
+    name="Inovelli VZM31-SN",
+    manufacturer="Inovelli",
+    model="VZM31-SN",
+    settings=COMMON_SWITCH_DIMMER_SETTINGS,
+    commands=VZM32_SN.commands[:1],
+)
+
+VZM30_SN = Profile(
+    name="Inovelli VZM30-SN",
+    manufacturer="Inovelli",
+    model="VZM30-SN",
+    settings=COMMON_SWITCH_SETTINGS,
+    commands=VZM32_SN.commands[:1],
+)
+
+VZM35_SN = Profile(
+    name="Inovelli VZM35-SN",
+    manufacturer="Inovelli",
+    model="VZM35-SN",
+    settings=COMMON_FAN_SWITCH_SETTINGS,
+    commands=VZM32_SN.commands[:1],
+)
+
+PROFILES = (VZM32_SN, VZM31_SN, VZM30_SN, VZM35_SN)
 
 
 def get_matching_profile(manufacturer: str | None, model: str | None) -> Profile | None:

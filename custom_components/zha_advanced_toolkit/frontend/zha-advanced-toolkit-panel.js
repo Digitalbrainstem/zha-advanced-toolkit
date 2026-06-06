@@ -31,6 +31,7 @@ class ZhaAdvancedToolkitPanel extends HTMLElement {
         .raw-grid label { display: grid; gap: 4px; font-size: 12px; color: var(--secondary-text-color); }
         .raw-list { max-height: 280px; overflow: auto; margin-top: 12px; font-size: 12px; color: var(--secondary-text-color); }
         .name { font-weight: 500; }
+        .description { color: var(--secondary-text-color); font-size: 13px; margin-top: 4px; max-width: 48rem; }
         .meta { color: var(--secondary-text-color); font-size: 12px; }
         .status { margin: 8px 0 16px; color: var(--secondary-text-color); }
         h1 { margin-top: 0; }
@@ -152,6 +153,7 @@ class ZhaAdvancedToolkitPanel extends HTMLElement {
     row.innerHTML = `
       <div>
         <div class="name">${setting.name}</div>
+        ${setting.description ? `<div class="description">${setting.description}</div>` : ""}
         <div class="meta">Cluster 0x${setting.cluster_id.toString(16)} • Attribute 0x${setting.attribute_id.toString(16)} • ${setting.attribute_name || setting.key}</div>
       </div>
     `;
@@ -201,12 +203,20 @@ class ZhaAdvancedToolkitPanel extends HTMLElement {
   }
 
   createInput(setting) {
+    if (setting.presentation === "color_hue") {
+      const input = document.createElement("input");
+      input.type = "color";
+      input.value = "#ffffff";
+      input.title = "Pick the LED color. The toolkit converts this to the raw Inovelli hue value.";
+      return input;
+    }
     if (setting.type === "select") {
       const select = document.createElement("select");
       for (const opt of setting.options || []) {
         const option = document.createElement("option");
         option.value = opt.value;
         option.textContent = opt.label;
+        if (opt.description) option.title = opt.description;
         select.appendChild(option);
       }
       return select;
@@ -232,8 +242,9 @@ class ZhaAdvancedToolkitPanel extends HTMLElement {
   async readSetting(device, setting, input, quiet = false) {
     try {
       const result = await this._hass.callWS({ type: "zha_advanced_toolkit/read", ieee: device.ieee, key: setting.key });
-      input.value = result.value;
-      if (!quiet) this.setStatus(`Read ${setting.name}: ${result.value}`);
+      const value = setting.presentation === "color_hue" ? result.display_value : result.value;
+      input.value = value ?? "";
+      if (!quiet) this.setStatus(`Read ${setting.name}: ${value ?? result.value}`);
     } catch (err) {
       if (!quiet) this.setStatus(`Failed to read ${setting.name}: ${err.message || err}`);
     }
@@ -241,12 +252,13 @@ class ZhaAdvancedToolkitPanel extends HTMLElement {
 
   async writeSetting(device, setting, input) {
     let value = input.value;
-    if (setting.type === "number" || setting.type === "select" || setting.type === "switch") {
+    if (setting.presentation !== "color_hue" && (setting.type === "number" || setting.type === "select" || setting.type === "switch")) {
       value = Number(value);
     }
     try {
-      await this._hass.callWS({ type: "zha_advanced_toolkit/write", ieee: device.ieee, key: setting.key, value });
-      this.setStatus(`Wrote ${setting.name}: ${value}`);
+      const result = await this._hass.callWS({ type: "zha_advanced_toolkit/write", ieee: device.ieee, key: setting.key, value });
+      const displayValue = setting.presentation === "color_hue" ? result.display_value : result.value;
+      this.setStatus(`Wrote ${setting.name}: ${displayValue ?? value}`);
     } catch (err) {
       this.setStatus(`Failed to write ${setting.name}: ${err.message || err}`);
     }

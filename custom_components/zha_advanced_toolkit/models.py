@@ -57,6 +57,7 @@ class Option:
 
     value: int
     label: str
+    description: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -73,6 +74,8 @@ class EntityDescriptionBase:
     min_firmware: str | None = None
     max_firmware: str | None = None
     enabled_by_default: bool = True
+    description: str | None = None
+    presentation: str | None = None
 
     @property
     def unique_suffix(self) -> str:
@@ -318,6 +321,6 @@ class ToolkitData:
     devices: list[ToolkitDevice]
 
 
-def option(value: int, label: str) -> Option:
+def option(value: int, label: str, description: str | None = None) -> Option:
     """Create a select option."""
-    return Option(value=value, label=label)
+    return Option(value=value, label=label, description=description)

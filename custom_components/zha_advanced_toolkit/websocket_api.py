@@ -37,6 +37,90 @@ TYPE_RAW_READ = f"{DOMAIN}/raw_read"
 TYPE_RAW_WRITE = f"{DOMAIN}/raw_write"
 
 
+def _hue_value_to_hex(value: Any) -> str | None:
+    """Convert an Inovelli 0-255 hue value to a CSS hex color."""
+    if value is None:
+        return None
+    try:
+        raw = max(0, min(255, int(value)))
+    except (TypeError, ValueError):
+        return None
+    if raw == 255:
+        return "#ffffff"
+
+    # Inovelli stores LED colors as an 8-bit hue wheel.
+    hue = raw / 255
+    sector = int(hue * 6)
+    fraction = hue * 6 - sector
+    q = 1 - fraction
+    t = fraction
+    r, g, b = (
+        (1, t, 0)
+        if sector == 0
+        else (q, 1, 0)
+        if sector == 1
+        else (0, 1, t)
+        if sector == 2
+        else (0, q, 1)
+        if sector == 3
+        else (t, 0, 1)
+        if sector == 4
+        else (1, 0, q)
+    )
+    return f"#{round(r * 255):02x}{round(g * 255):02x}{round(b * 255):02x}"
+
+
+def _hex_to_hue_value(value: Any) -> int:
+    """Convert a CSS hex color to an Inovelli 0-255 hue value."""
+    if not isinstance(value, str) or not value.startswith("#"):
+        try:
+            raw = int(value)
+        except (TypeError, ValueError) as err:
+            raise HomeAssistantError(f"Invalid color value {value!r}") from err
+        if 0 <= raw <= 255:
+            return raw
+        raise HomeAssistantError("Color hue values must be between 0 and 255")
+
+    color = value.removeprefix("#")
+    if len(color) == 3:
+        color = "".join(char * 2 for char in color)
+    if len(color) != 6:
+        raise HomeAssistantError(f"Invalid color value {value!r}")
+
+    try:
+        red = int(color[0:2], 16) / 255
+        green = int(color[2:4], 16) / 255
+        blue = int(color[4:6], 16) / 255
+    except ValueError as err:
+        raise HomeAssistantError(f"Invalid color value {value!r}") from err
+    maximum = max(red, green, blue)
+    minimum = min(red, green, blue)
+    delta = maximum - minimum
+    if delta == 0:
+        return 255
+    if maximum == red:
+        hue = ((green - blue) / delta) % 6
+    elif maximum == green:
+        hue = (blue - red) / delta + 2
+    else:
+        hue = (red - green) / delta + 4
+    return round((hue / 6) * 255) % 255
+
+
+def _display_value(setting, value: Any) -> Any:
+    """Return a user-facing value for a setting."""
+    if setting.presentation == "color_hue":
+        return _hue_value_to_hex(value)
+    return value
+
+
+def _device_value(setting, value: Any) -> Any:
+    """Return the raw value to write to the device."""
+    if setting.presentation == "color_hue":
+        return _hex_to_hue_value(value)
+    return value
+
+
 def _get_data(hass: HomeAssistant) -> ToolkitData:
     """Return the toolkit runtime data."""
     entries = hass.data.get(DOMAIN, {})
@@ -79,11 +163,17 @@ def _setting_payload(setting) -> dict[str, Any]:
         "attribute_id": setting.attribute_id,
         "attribute_name": setting.attribute_name,
         "enabled_by_default": setting.enabled_by_default,
+        "description": setting.description,
+        "presentation": setting.presentation,
     }
     if isinstance(setting, SelectEntityDescription):
         payload["type"] = "select"
         payload["options"] = [
-            {"value": option.value, "label": option.label}
+            {
+                "value": option.value,
+                "label": option.label,
+                "description": option.description,
+            }
             for option in setting.options
         ]
         payload["custom_option"] = setting.custom_option
@@ -199,7 +289,10 @@ async def websocket_read(
     device = _find_device(data, msg["ieee"])
     setting = _find_setting(device, msg["key"])
     value = await setting.async_read(hass, device.zha_device)
-    connection.send_result(msg["id"], {"value": value})
+    connection.send_result(
+        msg["id"],
+        {"value": value, "display_value": _display_value(setting, value)},
+    )
 
 
 @websocket_api.require_admin
@@ -221,8 +314,12 @@ async def websocket_write(
     data = _get_data(hass)
     device = _find_device(data, msg["ieee"])
     setting = _find_setting(device, msg["key"])
-    await setting.async_write(hass, device.zha_device, msg["value"])
-    connection.send_result(msg["id"], {"value": msg["value"]})
+    value = _device_value(setting, msg["value"])
+    await setting.async_write(hass, device.zha_device, value)
+    connection.send_result(
+        msg["id"],
+        {"value": value, "display_value": _display_value(setting, value)},
+    )
 
 
 @websocket_api.require_admin
