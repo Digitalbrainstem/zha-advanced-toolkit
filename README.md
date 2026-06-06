@@ -7,24 +7,7 @@ Home Assistant custom integration that complements ZHA by exposing friendly enti
 - Inovelli VZM32-SN Blue Series mmWave Presence Dimmer/Switch
 - Requires ZHA and the relevant ZHA quirk to expose manufacturer clusters
 
-## Install with HACS
-
-1. In Home Assistant, open **HACS**.
-2. Go to **Integrations**.
-3. Open the three-dot menu and choose **Custom repositories**.
-4. Add this repository URL:
-
-   `https://github.com/Digitalbrainstem/zha-advanced-toolkit`
-
-5. Set the category to **Integration**.
-6. Install **ZHA Advanced Toolkit** from HACS.
-7. Restart Home Assistant.
-8. Go to **Settings** -> **Devices & services** -> **Add integration**.
-9. Add **ZHA Advanced Toolkit**.
-
-HACS will notify you when updates are available.
-
-## Manual install
+## Install
 
 1. Copy `custom_components/zha_advanced_toolkit` into your Home Assistant `custom_components` directory.
 2. Restart Home Assistant.

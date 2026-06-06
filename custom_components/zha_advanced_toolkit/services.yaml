@@ -1,0 +1,3 @@
+diagnose:
+  name: Diagnose
+  description: Show which ZHA devices ZHA Advanced Toolkit can currently see.
