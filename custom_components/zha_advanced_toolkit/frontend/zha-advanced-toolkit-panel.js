@@ -1,17 +1,21 @@
 class ZhaAdvancedToolkitPanel extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
-    if (!this._loaded) {
-      this._loaded = true;
+    if (this._rendered && !this._loaded) {
       this.loadDevices();
     }
   }
 
   connectedCallback() {
     this.renderShell();
+    if (this._hass && !this._loaded) {
+      this.loadDevices();
+    }
   }
 
   renderShell() {
+    if (this._rendered) return;
+    this._rendered = true;
     this.innerHTML = `
       <style>
         :host { display: block; padding: 24px; color: var(--primary-text-color); }
@@ -47,6 +51,7 @@ class ZhaAdvancedToolkitPanel extends HTMLElement {
 
   async loadDevices() {
     if (!this._hass) return;
+    this._loaded = true;
     this.setStatus("Loading devices...");
     try {
       this._devices = await this._hass.callWS({ type: "zha_advanced_toolkit/devices" });
@@ -316,4 +321,6 @@ class ZhaAdvancedToolkitPanel extends HTMLElement {
   }
 }
 
-customElements.define("zha-advanced-toolkit-panel", ZhaAdvancedToolkitPanel);
+if (!customElements.get("zha-advanced-toolkit-panel")) {
+  customElements.define("zha-advanced-toolkit-panel", ZhaAdvancedToolkitPanel);
+}

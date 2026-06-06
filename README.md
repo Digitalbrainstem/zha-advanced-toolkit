@@ -14,13 +14,13 @@ Home Assistant custom integration that complements ZHA with device-page advanced
 3. Go to **Settings** -> **Devices & services** -> **Add integration**.
 4. Add **ZHA Advanced Toolkit**.
 
-The integration discovers supported ZHA devices and adds an **Open configuration** action to each supported ZHA device page.
+The integration discovers supported ZHA devices and adds an **Open configuration** / **Visit** action to each supported ZHA device page.
 
 Only one **ZHA Advanced Toolkit** integration entry is needed. The Inovelli/Zigbee devices are discovered from ZHA; you do not add each switch with **Add entry**.
 
 ## Device-page configuration
 
-Open the supported ZHA device in Home Assistant and use **Open configuration** to view grouped advanced configuration settings, read current Zigbee values, write changes, and run supported device commands for that device.
+Open the supported ZHA device in Home Assistant and use **Open configuration** / **Visit** to view grouped advanced configuration settings, read current Zigbee values, write changes, and run supported device commands for that device.
 
 The panel also includes **Raw cluster access** for attributes that do not have friendly controls yet. This lets you load exposed ZHA clusters and read/write endpoint, cluster, and attribute IDs directly from the same UI.
 
