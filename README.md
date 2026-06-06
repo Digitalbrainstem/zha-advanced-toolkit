@@ -16,6 +16,8 @@ Home Assistant custom integration that complements ZHA by exposing friendly enti
 
 The integration discovers supported ZHA devices and adds native Home Assistant entities to the existing ZHA device.
 
+Only one **ZHA Advanced Toolkit** integration entry is needed. The Inovelli/Zigbee devices are discovered from ZHA and exposed as entities under their existing ZHA devices; you do not add each switch with **Add entry**.
+
 ## Exposed settings
 
 The first profile focuses on the VZM32-SN wiring/setup settings:

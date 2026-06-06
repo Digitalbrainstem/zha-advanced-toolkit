@@ -37,11 +37,6 @@ class ZHAAdvancedEntity(Entity):
         return DeviceInfo(
             identifiers={(ZHA_DOMAIN, self.toolkit_device.ieee)},
             connections={(dr.CONNECTION_ZIGBEE, self.toolkit_device.ieee)},
-            name=self.toolkit_device.name,
-            manufacturer=self.toolkit_device.manufacturer,
-            model=self.toolkit_device.model,
-            sw_version=self.toolkit_device.firmware,
-            configuration_url="homeassistant://config/devices/device",
         )
 
     @property
