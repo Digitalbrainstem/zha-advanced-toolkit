@@ -2,16 +2,29 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import device_registry as dr
 
 from .const import CLUSTER_TYPE_IN
 
 
 class ZHAAccessError(HomeAssistantError):
     """Raised when ZHA is unavailable or incompatible."""
+
+
+@dataclass(frozen=True, kw_only=True)
+class ZHADeviceRef:
+    """Stable reference to a ZHA device from Home Assistant's device registry."""
+
+    ieee: str
+    manufacturer: str | None
+    model: str | None
+    name: str | None
+    firmware: str | None
 
 
 def _get_zha_gateway(hass: HomeAssistant) -> Any:
@@ -41,7 +54,65 @@ def _get_zha_gateway_proxy(hass: HomeAssistant) -> Any | None:
 
 
 def get_zha_devices(hass: HomeAssistant) -> list[Any]:
-    """Return ZHA devices from the active gateway."""
+    """Return ZHA devices from the device registry, with live ZHA fallback.
+
+    The device registry is restored before ZHA finishes gateway initialization, so it
+    is the reliable source for creating entities during Home Assistant startup.
+    """
+    registry = dr.async_get(hass)
+    devices = _get_registry_zha_devices(registry)
+    if devices:
+        return devices
+
+    return _get_live_zha_devices(hass)
+
+
+def _get_registry_zha_devices(registry: dr.DeviceRegistry) -> list[ZHADeviceRef]:
+    """Return ZHA device references from the Home Assistant device registry."""
+    registry_devices = getattr(registry, "devices", {})
+    entries = (
+        registry_devices.values()
+        if hasattr(registry_devices, "values")
+        else registry_devices
+    )
+
+    devices: list[ZHADeviceRef] = []
+    seen: set[str] = set()
+    for entry in entries:
+        ieee = _entry_zha_ieee(entry)
+        if not ieee or ieee in seen:
+            continue
+        seen.add(ieee)
+        devices.append(
+            ZHADeviceRef(
+                ieee=ieee,
+                manufacturer=getattr(entry, "manufacturer", None),
+                model=getattr(entry, "model", None),
+                name=(
+                    getattr(entry, "name_by_user", None)
+                    or getattr(entry, "name", None)
+                    or getattr(entry, "original_name", None)
+                ),
+                firmware=getattr(entry, "sw_version", None),
+            )
+        )
+    return devices
+
+
+def _entry_zha_ieee(entry: Any) -> str | None:
+    """Extract a ZHA IEEE string from a device registry entry."""
+    for domain, identifier in getattr(entry, "identifiers", set()):
+        if domain == "zha":
+            return str(identifier)
+
+    for connection_type, identifier in getattr(entry, "connections", set()):
+        if connection_type == dr.CONNECTION_ZIGBEE:
+            return str(identifier)
+    return None
+
+
+def _get_live_zha_devices(hass: HomeAssistant) -> list[Any]:
+    """Return live ZHA gateway devices if the gateway is ready."""
     devices: list[Any] = []
     gateway_proxy = _get_zha_gateway_proxy(hass)
     if gateway_proxy is not None:
@@ -50,7 +121,11 @@ def get_zha_devices(hass: HomeAssistant) -> list[Any]:
             if device is not None:
                 devices.append(device)
 
-    gateway = _get_zha_gateway(hass)
+    try:
+        gateway = _get_zha_gateway(hass)
+    except ZHAAccessError:
+        return devices
+
     for device in getattr(gateway, "devices", {}).values():
         if all(get_device_ieee(device) != get_device_ieee(existing) for existing in devices):
             devices.append(device)
@@ -59,6 +134,8 @@ def get_zha_devices(hass: HomeAssistant) -> list[Any]:
 
 def _nested_device(zha_device: Any) -> Any:
     """Return the nested zigpy device if present."""
+    if isinstance(zha_device, ZHADeviceRef):
+        return zha_device
     return getattr(zha_device, "device", None) or zha_device
 
 
@@ -75,34 +152,56 @@ def _first_attr(zha_device: Any, names: tuple[str, ...]) -> Any:
 
 def get_device_ieee(zha_device: Any) -> str:
     """Return a device IEEE string."""
+    if isinstance(zha_device, ZHADeviceRef):
+        return zha_device.ieee
     return str(_first_attr(zha_device, ("ieee",)) or "")
 
 
 def get_device_manufacturer(zha_device: Any) -> str | None:
     """Return a device manufacturer."""
+    if isinstance(zha_device, ZHADeviceRef):
+        return zha_device.manufacturer
     value = _first_attr(zha_device, ("manufacturer",))
     return str(value) if value is not None else None
 
 
 def get_device_model(zha_device: Any) -> str | None:
     """Return a device model."""
+    if isinstance(zha_device, ZHADeviceRef):
+        return zha_device.model
     value = _first_attr(zha_device, ("model",))
     return str(value) if value is not None else None
 
 
 def get_device_name(zha_device: Any) -> str | None:
     """Return a device name."""
+    if isinstance(zha_device, ZHADeviceRef):
+        return zha_device.name
     value = _first_attr(zha_device, ("name",))
     return str(value) if value is not None else None
 
 
 def get_device_firmware(zha_device: Any) -> str | None:
     """Return a device firmware version."""
+    if isinstance(zha_device, ZHADeviceRef):
+        return zha_device.firmware
     value = _first_attr(
         zha_device,
         ("firmware_version", "sw_version", "software_build_id"),
     )
     return str(value) if value is not None else None
+
+
+def resolve_zha_device(hass: HomeAssistant, zha_device: Any) -> Any | None:
+    """Resolve a registry device reference to a live ZHA device."""
+    if not isinstance(zha_device, ZHADeviceRef):
+        return zha_device
+
+    target_ieee = zha_device.ieee
+    for live_device in _get_live_zha_devices(hass):
+        if get_device_ieee(live_device) == target_ieee:
+            return live_device
+    return None
 
 
 def _get_cluster(
@@ -163,6 +262,7 @@ def cluster_attribute_supported(
 
 
 async def async_read_cluster_attribute(
+    hass: HomeAssistant,
     zha_device: Any,
     endpoint_id: int,
     cluster_id: int,
@@ -172,7 +272,11 @@ async def async_read_cluster_attribute(
     manufacturer: int | None = None,
 ) -> Any:
     """Read a cluster attribute from a ZHA device."""
-    cluster = _get_cluster(zha_device, endpoint_id, cluster_id, cluster_type)
+    live_device = resolve_zha_device(hass, zha_device)
+    if live_device is None:
+        raise HomeAssistantError("ZHA device is not ready")
+
+    cluster = _get_cluster(live_device, endpoint_id, cluster_id, cluster_type)
     if cluster is None:
         raise HomeAssistantError(
             f"Cluster 0x{cluster_id:04x} endpoint {endpoint_id} is unavailable"
@@ -206,7 +310,7 @@ async def async_write_cluster_attribute(
 ) -> None:
     """Write a cluster attribute using ZHA's registered service."""
     data: dict[str, Any] = {
-        "ieee": str(zha_device.ieee),
+        "ieee": get_device_ieee(zha_device),
         "endpoint_id": endpoint_id,
         "cluster_id": cluster_id,
         "cluster_type": cluster_type,
@@ -239,7 +343,7 @@ async def async_issue_cluster_command(
 ) -> None:
     """Issue a cluster command using ZHA's registered service."""
     data: dict[str, Any] = {
-        "ieee": str(zha_device.ieee),
+        "ieee": get_device_ieee(zha_device),
         "endpoint_id": endpoint_id,
         "cluster_id": cluster_id,
         "cluster_type": cluster_type,

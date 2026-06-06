@@ -49,7 +49,7 @@ class ZHAAdvancedSwitch(ZHAAdvancedEntity, SwitchEntity):
         """Refresh the current value."""
         try:
             self._raw_value = await self.entity_description.async_read(
-                self.toolkit_device.zha_device
+                self.hass, self.toolkit_device.zha_device
             )
         except HomeAssistantError:
             self._attr_zigbee_available = False

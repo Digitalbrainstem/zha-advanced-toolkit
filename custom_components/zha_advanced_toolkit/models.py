@@ -116,9 +116,10 @@ class AttributeEntityDescription(EntityDescriptionBase):
             self.attribute_name,
         )
 
-    async def async_read(self, zha_device: Any) -> Any:
+    async def async_read(self, hass: HomeAssistant, zha_device: Any) -> Any:
         """Read the current Zigbee attribute value."""
         return await async_read_cluster_attribute(
+            hass,
             zha_device,
             self.endpoint_id,
             self.cluster_id,
