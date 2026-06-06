@@ -60,3 +60,5 @@ The VZM32-SN mmWave profile includes mmWave-specific settings and commands. VZM3
 This integration uses ZHA as the Zigbee backend. It does not replace ZHA, pair devices, or manage the Zigbee network.
 
 Home Assistant ZHA network backups do not always include joined-device model and cluster inventory. To add friendly support for more non-Inovelli devices, export per-device ZHA diagnostics so the toolkit can see the model, manufacturer, endpoints, clusters, attributes, and firmware exposed by Home Assistant.
+
+If Home Assistant logs show a startup error in `zha_advanced_toolkit/zha.py` about registry identifier unpacking, update to v0.4.1 or newer. If the error remains after updating through HACS, remove the old `custom_components/zha_advanced_toolkit` directory and reinstall from HACS to clear stale manually copied files.

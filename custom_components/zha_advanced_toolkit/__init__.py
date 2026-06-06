@@ -10,7 +10,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
-from .const import DOMAIN, SERVICE_DIAGNOSE
+from .const import DOMAIN, SERVICE_DIAGNOSE, VERSION
 from .device_link import async_attach_device_links, async_remove_device_links
 from .models import ToolkitData
 from .panel import async_register_toolkit_panel, async_remove_toolkit_panel
@@ -38,6 +38,7 @@ PLATFORMS: tuple[Platform, ...] = (
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up ZHA Advanced Toolkit from a config entry."""
+    _LOGGER.info("Setting up ZHA Advanced Toolkit version %s", VERSION)
     try:
         zha_devices = get_zha_devices(hass)
     except ZHAAccessError as err:

@@ -2,7 +2,7 @@
 
 DOMAIN = "zha_advanced_toolkit"
 ZHA_DOMAIN = "zha"
-VERSION = "0.4.0"
+VERSION = "0.4.1"
 
 CLUSTER_TYPE_IN = "in"
 COMMAND_TYPE_SERVER = "server"

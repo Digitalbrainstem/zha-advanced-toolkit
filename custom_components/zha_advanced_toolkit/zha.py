@@ -102,19 +102,28 @@ def _get_registry_zha_devices(registry: dr.DeviceRegistry) -> list[ZHADeviceRef]
 def _entry_zha_ieee(entry: Any) -> str | None:
     """Extract a ZHA IEEE string from a device registry entry."""
     for identifier_tuple in getattr(entry, "identifiers", set()):
-        if len(identifier_tuple) < 2:
+        parts = _registry_tuple_parts(identifier_tuple)
+        if parts is None:
             continue
-        domain, identifier = identifier_tuple[:2]
+        domain, identifier = parts
         if domain == "zha":
             return str(identifier)
 
     for connection_tuple in getattr(entry, "connections", set()):
-        if len(connection_tuple) < 2:
+        parts = _registry_tuple_parts(connection_tuple)
+        if parts is None:
             continue
-        connection_type, identifier = connection_tuple[:2]
+        connection_type, identifier = parts
         if connection_type == dr.CONNECTION_ZIGBEE:
             return str(identifier)
     return None
+
+
+def _registry_tuple_parts(value: Any) -> tuple[Any, Any] | None:
+    """Return the first two parts of a registry identifier/connection tuple."""
+    if not isinstance(value, (list, tuple)) or len(value) < 2:
+        return None
+    return value[0], value[1]
 
 
 def _get_live_zha_devices(hass: HomeAssistant) -> list[Any]:
